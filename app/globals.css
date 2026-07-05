@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* Light theme — "Navy professional + paid green" (LinkedIn Approval) */
   --color-primary: #1e3a5f;
   --color-on-primary: #ffffff;
   --color-secondary: #2563eb;
@@ -20,7 +19,6 @@
   --color-ring: #1e3a5f;
   --color-canvas: #eef2f7;
 
-  /* status accents */
   --color-pending: #b45309;
   --color-pending-bg: #fffbeb;
   --color-approved: #059669;
@@ -86,19 +84,29 @@
 
 @layer components {
   .surface {
-    @apply rounded-lg border bg-background shadow-card;
-    border-color: var(--color-border);
+    @apply rounded-xl border;
+    background: var(--color-muted);
+    border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+    padding: 1px;
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 2px 4px 0 rgb(15 23 42 / 0.05);
+  }
+  .surface-inner {
+    @apply rounded-[calc(0.75rem-1px)];
+    background: var(--color-background);
+    box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.08);
   }
   .surface-muted {
     @apply rounded-lg border;
     background-color: var(--color-muted);
     border-color: var(--color-border);
   }
+
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium
-      transition-colors duration-200 ease-smooth cursor-pointer
-      disabled:opacity-50 disabled:cursor-not-allowed select-none;
-    padding: 0.5rem 0.875rem;
+    @apply inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium
+      transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer
+      disabled:opacity-50 disabled:cursor-not-allowed select-none
+      active:scale-[0.97];
+    padding: 0.5rem 1.125rem;
     min-height: 2.25rem;
   }
   .btn-primary {
@@ -144,6 +152,31 @@
   .btn-danger:hover:not(:disabled) {
     background: var(--color-rejected-bg);
   }
+
+  .btn-icon-nest {
+    @apply grid place-items-center rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)];
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  .btn-accent .btn-icon-nest {
+    background: color-mix(in srgb, var(--color-on-accent) 15%, transparent);
+  }
+  .btn-accent:hover:not(:disabled) .btn-icon-nest {
+    transform: translateX(1px) translateY(-1px) scale(1.04);
+  }
+  .btn-secondary .btn-icon-nest {
+    background: var(--color-muted);
+  }
+  .btn-secondary:hover:not(:disabled) .btn-icon-nest {
+    transform: translateX(1px) translateY(-1px) scale(1.04);
+  }
+  .btn-danger .btn-icon-nest {
+    background: color-mix(in srgb, var(--color-destructive) 12%, transparent);
+  }
+  .btn-danger:hover:not(:disabled) .btn-icon-nest {
+    transform: translateX(1px) translateY(-1px) scale(1.04);
+  }
+
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
   }
@@ -152,7 +185,8 @@
     color: var(--color-muted-foreground);
   }
   .input {
-    @apply w-full rounded-md border bg-background px-3 py-2 text-sm transition
+    @apply w-full rounded-md border bg-background px-3 py-2 text-sm
+      transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
       focus:outline-none focus:ring-2 focus:ring-ring;
     border-color: var(--color-border);
   }

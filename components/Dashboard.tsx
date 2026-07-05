@@ -7,32 +7,33 @@ import { CardDeck } from "./CardDeck";
 import { LinkedinComposer } from "./LinkedinComposer";
 import { InboxIcon, PlusIcon } from "./Icons";
 
-export function Dashboard({
-  initialWeeks,
-  initialBackend,
-}: {
-  initialWeeks: WeekGroup[];
-  initialBackend: string;
-}) {
-  const [weeks, setWeeks] = useState<WeekGroup[]>(initialWeeks);
-  const [backend, setBackend] = useState<string>(initialBackend);
+type Horizon = 1 | 2 | 3;
+
+export function Dashboard() {
+  const [weeks, setWeeks] = useState<WeekGroup[]>([]);
+  const [horizon, setHorizon] = useState<Horizon>(1);
   const [refreshing, setRefreshing] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/posts", { cache: "no-store" });
+      const res = await fetch(`/api/posts?horizon=${horizon}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
       const data = await res.json();
       setWeeks(data.weeks);
-      setBackend(data.backend);
     } catch (e) {
       console.error(e);
     } finally {
       setRefreshing(false);
+      setLoaded(true);
     }
-  }, []);
+  }, [horizon]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   useEffect(() => {
     const onFocus = () => refresh();
@@ -45,10 +46,7 @@ export function Dashboard({
     window.location.assign("/login");
   }
 
-  const totalPending = weeks.reduce(
-    (n, w) => n + w.counts.pending,
-    0
-  );
+  const totalPending = weeks.reduce((n, w) => n + w.counts.pending, 0);
   const totalApproved = weeks.reduce((n, w) => n + w.counts.approved, 0);
   const totalPosts = weeks.reduce((n, w) => n + w.total, 0);
 
@@ -58,31 +56,35 @@ export function Dashboard({
         onNew={() => setShowNew(true)}
         onRefresh={refresh}
         refreshing={refreshing}
-        backend={backend}
         onLogout={logout}
       />
 
-      <main className="mx-auto max-w-[920px] px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <main className="mx-auto max-w-[920px] px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Post approval
-            </h2>
-            <p className="mt-1 max-w-xl text-sm text-[var(--color-muted-foreground)]">
-              Review one post at a time. Approve, request changes, or reject —
-              keyboard shortcuts <kbd className="rounded bg-[var(--color-muted)] px-1 font-mono text-[11px]">A</kbd> / <kbd className="rounded bg-[var(--color-muted)] px-1 font-mono text-[11px]">C</kbd> / <kbd className="rounded bg-[var(--color-muted)] px-1 font-mono text-[11px]">R</kbd> work too. Switch weeks with <kbd className="rounded bg-[var(--color-muted)] px-1 font-mono text-[11px]">←</kbd> / <kbd className="rounded bg-[var(--color-muted)] px-1 font-mono text-[11px]">→</kbd>.
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--color-muted-foreground)]">
+              Approval queue
             </p>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-[28px]">
+              Review posts
+            </h2>
           </div>
-          <div className="flex items-center gap-3 font-mono text-xs text-[var(--color-muted-foreground)]">
-            <span>{totalPosts} staged</span>
-            <span className="h-3 w-px bg-[var(--color-border)]" aria-hidden />
-            <span className="text-[var(--color-accent)]">{totalApproved} approved</span>
-            <span className="h-3 w-px bg-[var(--color-border)]" aria-hidden />
-            <span className="text-[var(--color-pending)]">{totalPending} pending</span>
+
+          <div className="flex items-center gap-4">
+            <HorizonSelector value={horizon} onChange={setHorizon} />
+            <div className="hidden items-center gap-3 font-mono text-xs text-[var(--color-muted-foreground)] sm:flex">
+              <span className="text-[var(--color-accent)]">{totalApproved} approved</span>
+              <span className="h-3 w-px bg-[var(--color-border)]" aria-hidden />
+              <span className={totalPending > 0 ? "text-[var(--color-pending)]" : ""}>
+                {totalPending} pending
+              </span>
+            </div>
           </div>
         </div>
 
-        {totalPosts === 0 ? (
+        {!loaded ? (
+          <LoadingSkeleton />
+        ) : totalPosts === 0 ? (
           <EmptyState onNew={() => setShowNew(true)} />
         ) : (
           <CardDeck weeks={weeks} onChanged={refresh} />
@@ -95,32 +97,77 @@ export function Dashboard({
         onCreated={refresh}
       />
 
-      <footer className="mx-auto max-w-[920px] px-4 pb-10 pt-4 text-center font-mono text-[11px] text-[var(--color-muted-foreground)] sm:px-6">
-        LinkedIn Approval · internal · {backend === "kv" ? "Vercel KV" : "dev in-memory store"}
+      <footer className="mx-auto max-w-[920px] px-4 pb-12 pt-6 text-center text-[11px] text-[var(--color-muted-foreground)] sm:px-6">
+        LinkedIn Approval
       </footer>
+    </div>
+  );
+}
+
+function HorizonSelector({
+  value,
+  onChange,
+}: {
+  value: Horizon;
+  onChange: (h: Horizon) => void;
+}) {
+  const opts: Horizon[] = [1, 2, 3];
+  return (
+    <div className="flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] p-1">
+      {opts.map((h) => (
+        <button
+          key={h}
+          type="button"
+          onClick={() => onChange(h)}
+          className={
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors " +
+            (h === value
+              ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+              : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]")
+          }
+          aria-pressed={h === value}
+          title={`Show ${h} week${h > 1 ? "s" : ""}`}
+        >
+          {h}w
+        </button>
+      ))}
     </div>
   );
 }
 
 function EmptyState({ onNew }: { onNew: () => void }) {
   return (
-    <div className="surface flex flex-col items-center gap-4 px-6 py-16 text-center">
-      <span
-        className="grid h-14 w-14 place-items-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
-        aria-hidden
-      >
-        <InboxIcon size={26} />
-      </span>
-      <div>
-        <h3 className="text-lg font-semibold">No posts queued yet</h3>
-        <p className="mx-auto mt-1 max-w-md text-sm text-[var(--color-muted-foreground)]">
-          Stage your first post — LinkedIn-style composer, visual asset,
-          scheduling, and a note for the approver.
-        </p>
+    <div className="surface overflow-hidden">
+      <div className="surface-inner flex flex-col items-center gap-4 px-6 py-20 text-center">
+        <span
+          className="grid h-14 w-14 place-items-center rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
+          aria-hidden
+        >
+          <InboxIcon size={26} />
+        </span>
+        <div>
+          <h3 className="text-lg font-semibold">Nothing in the queue</h3>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-[var(--color-muted-foreground)]">
+            Stage a post to start the review cycle.
+          </p>
+        </div>
+        <button type="button" className="btn-primary" onClick={onNew}>
+          <PlusIcon size={16} /> New post
+        </button>
       </div>
-      <button type="button" className="btn-primary" onClick={onNew}>
-        <PlusIcon size={16} /> Create a post
-      </button>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="surface">
+        <div className="surface-inner h-12 animate-pulse" style={{ background: "var(--color-muted)" }} />
+      </div>
+      <div className="surface">
+        <div className="surface-inner h-[400px] animate-pulse" style={{ background: "var(--color-muted)" }} />
+      </div>
     </div>
   );
 }

@@ -1,17 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import type { Post, PostStatus, WeekGroup } from "@/lib/types";
+import type { Post, WeekGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LinkedinPreview } from "./LinkedinPreview";
-import {
-  CheckIcon,
-  XIcon,
-  AlertIcon,
-  InboxIcon,
-  CheckCircleIcon,
-  UndoIcon,
-} from "./Icons";
+import { CheckIcon, XIcon, AlertIcon, CheckCircleIcon, UndoIcon } from "./Icons";
 import { StatusBadge } from "./StatusBadge";
 
 type Verdict = "approved" | "rejected" | "changes_requested";
@@ -30,24 +23,22 @@ export function CardDeck({
   onChanged: () => void;
 }) {
   const [tabIdx, setTabIdx] = useState(0);
-  const [cursor, setCursor] = useState(0); // index within current week's pending list
+  const [cursor, setCursor] = useState(0);
   const [history, setHistory] = useState<Decision[]>([]);
   const [busy, start] = useTransition();
   const [animKey, setAnimKey] = useState(0);
   const [flash, setFlash] = useState<Verdict | "undo" | null>(null);
 
-  // Only pending posts need review; approved/rejected are removed from the queue.
-  const pendingByWeek = useMemo(() => {
-    return weeks.map((w) => w.posts.filter((p) => p.status === "pending"));
-  }, [weeks]);
+  const pendingByWeek = useMemo(
+    () => weeks.map((w) => w.posts.filter((p) => p.status === "pending")),
+    [weeks]
+  );
 
   const tab = Math.min(tabIdx, weeks.length - 1);
   const currentPending = pendingByWeek[tab] ?? [];
   const total = currentPending.length;
   const idx = Math.min(cursor, Math.max(total - 1, 0));
   const post = currentPending[idx];
-
-  const weekTabs = ["This week", "Next week", "The week after"];
 
   const decide = useCallback(
     (verdict: Verdict) => {
@@ -93,7 +84,6 @@ export function CardDeck({
     });
   }
 
-  // Keyboard shortcuts: A approve, R reject, C changes, U undo, ← → week tabs
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -102,146 +92,168 @@ export function CardDeck({
       else if (k === "r") { e.preventDefault(); decide("rejected"); }
       else if (k === "c") { e.preventDefault(); decide("changes_requested"); }
       else if (k === "u") { e.preventDefault(); undo(); }
-      else if (e.key === "ArrowRight") { setTabIdx((i) => Math.min(i + 1, weeks.length - 1)); setCursor(0); }
-      else if (e.key === "ArrowLeft") { setTabIdx((i) => Math.max(i - 1, 0)); setCursor(0); }
+      else if (e.key === "ArrowRight" && weeks.length > 1) {
+        setTabIdx((i) => Math.min(i + 1, weeks.length - 1)); setCursor(0);
+      } else if (e.key === "ArrowLeft" && weeks.length > 1) {
+        setTabIdx((i) => Math.max(i - 1, 0)); setCursor(0);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [decide, undo, weeks.length]);
 
-  // When the week's pending list shrinks (after a decision), keep cursor valid.
   useEffect(() => {
     if (cursor > 0 && cursor >= total) setCursor(Math.max(0, total - 1));
   }, [total, cursor]);
 
-  // When changing tabs, reset cursor.
   useEffect(() => { setCursor(0); }, [tabIdx]);
 
-  const totalReviewed = history.length;
-  const totalQueue = pendingByWeek.reduce((n, w) => n + w.length, 0);
+  const showTabs = weeks.length > 1;
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Week tabs + progress */}
-      <div className="surface flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4">
-        <div className="flex items-center gap-1 rounded-md bg-[var(--color-muted)] p-1">
-          {weeks.map((w, i) => {
-            const n = pendingByWeek[i]?.length ?? 0;
-            return (
-              <button
-                key={w.weekId}
-                type="button"
-                onClick={() => setTabIdx(i)}
-                className={cn(
-                  "rounded px-3 py-1.5 text-sm font-medium transition-colors",
-                  i === tab ? "bg-background text-[var(--color-foreground)] shadow-card" : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
-                )}
-              >
-                {weekTabs[i] ?? `Week ${i + 1}`}
-                <span className={cn("ml-2 font-mono text-xs", n > 0 ? "text-[var(--color-accent)]" : "text-[var(--color-muted-foreground)] opacity-60")}>
-                  {n}
-                </span>
-              </button>
-            );
-          })}
+      {showTabs && (
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] p-1 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            {weeks.map((w, i) => {
+              const n = pendingByWeek[i]?.length ?? 0;
+              return (
+                <button
+                  key={w.weekId}
+                  type="button"
+                  onClick={() => setTabIdx(i)}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                    i === tab
+                      ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+                      : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+                  )}
+                >
+                  {w.weekLabel}
+                  {n > 0 && (
+                    <span className={cn(
+                      "ml-2 font-mono text-xs",
+                      i === tab ? "opacity-80" : "text-[var(--color-pending)]"
+                    )}>
+                      {n}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="font-mono text-xs text-[var(--color-muted-foreground)]">
-          {total > 0 ? `${idx + 1} of ${total} pending` : "Week clear"} · {totalReviewed} reviewed · {totalQueue} in queue
-        </div>
-      </div>
+      )}
 
-      {/* Card stage */}
-      <div className="relative min-h-[28rem]">
+      <div className="relative min-h-[24rem]">
         {!post ? (
-          <WeekClear weekId={weeks[tab]?.weekId} weekLabel={weeks[tab]?.weekLabel} tabLabel={weekTabs[tab]} />
+          <WeekClear weekLabel={weeks[tab]?.weekLabel} />
         ) : (
           <div key={post.id + animKey} className="relative animate-slide-up">
+            {flash && flash !== "undo" && (
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-0 z-10 flex items-center justify-center animate-zoom-in",
+                  flash === "approved" && "bg-[var(--color-approved)]/85",
+                  flash === "rejected" && "bg-[var(--color-rejected)]/85",
+                  flash === "changes_requested" && "bg-[var(--color-changes)]/85"
+                )}
+                style={{ borderRadius: "inherit" }}
+              >
+                <span className="rounded-full border border-white/30 px-6 py-2 text-lg font-semibold tracking-tight text-white backdrop-blur-sm">
+                  {flash === "approved" && "Approved"}
+                  {flash === "rejected" && "Rejected"}
+                  {flash === "changes_requested" && "Changes requested"}
+                </span>
+              </div>
+            )}
+
+            {/* Double-bezel: outer shell */}
             <div
               className={cn(
-                "surface overflow-hidden transition-transform duration-150",
+                "surface overflow-hidden",
                 flash === "approved" && "ring-2 ring-[var(--color-approved)]",
                 flash === "rejected" && "ring-2 ring-[var(--color-rejected)]",
                 flash === "changes_requested" && "ring-2 ring-[var(--color-changes)]"
               )}
             >
-              {/* status strip */}
-              <div className="flex items-center justify-between border-b px-4 py-2.5">
-                <div className="font-mono text-xs text-[var(--color-muted-foreground)]">
-                  {post.dayLabel} · <span className="font-semibold">{post.author}</span>
+              {/* Inner core */}
+              <div className="surface-inner">
+                <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-3">
+                  <div className="text-sm text-[var(--color-muted-foreground)]">
+                    <span className="font-medium text-[var(--color-foreground)]">{post.dayLabel}</span>
+                    <span className="mx-2 opacity-50" aria-hidden>·</span>
+                    <span>{post.author}</span>
+                  </div>
+                  <StatusBadge status={post.status} size="sm" />
                 </div>
-                <StatusBadge status={post.status} size="sm" />
+
+                <LinkedinPreview post={post} />
+
+                {post.notes && (
+                  <div className="mx-5 mb-5 rounded-lg bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-foreground)]/85">
+                    <span className="font-medium">Note · </span>
+                    {post.notes}
+                  </div>
+                )}
+
+                {post.feedback && post.status !== "pending" && (
+                  <div className="mx-5 mb-5 rounded-lg bg-[var(--color-changes-bg)] px-4 py-3 text-sm text-[var(--color-changes)]">
+                    <span className="font-medium">Feedback · </span>
+                    {post.feedback}
+                  </div>
+                )}
               </div>
-
-              <LinkedinPreview post={post} />
-
-              {post.notes && (
-                <div className="mx-5 mb-4 rounded-md bg-[var(--color-muted)] px-3 py-2 text-sm text-[var(--color-foreground)]/85">
-                  <span className="font-medium">Note from author: </span>
-                  {post.notes}
-                </div>
-              )}
-
-              {post.feedback && post.status !== "pending" && (
-                <div className="mx-5 mb-4 rounded-md bg-[var(--color-changes-bg)] px-3 py-2 text-sm text-[var(--color-changes)]">
-                  <span className="font-medium">Previous feedback: </span>
-                  {post.feedback}
-                </div>
-              )}
             </div>
 
-            {/* Verdict bar */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            {/* Button-in-button action bar */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <button
                 type="button"
                 className="btn-accent min-w-[8rem] justify-center text-sm"
                 onClick={() => decide("approved")}
                 disabled={busy}
-                title="Approve · A"
+                title="Approve (A)"
               >
-                <CheckIcon size={18} /> Approve <kbd className="ml-1 hidden font-mono text-[10px] opacity-70 sm:inline">A</kbd>
+                <span className="btn-icon-nest"><CheckIcon size={15} /></span>
+                Approve
               </button>
               <button
                 type="button"
                 className="btn-secondary min-w-[8rem] justify-center text-sm"
                 onClick={() => decide("changes_requested")}
                 disabled={busy}
-                title="Request changes · C"
+                title="Request changes (C)"
               >
-                <AlertIcon size={18} /> Changes <kbd className="ml-1 hidden font-mono text-[10px] opacity-70 sm:inline">C</kbd>
+                <span className="btn-icon-nest"><AlertIcon size={15} /></span>
+                Changes
               </button>
               <button
                 type="button"
                 className="btn-danger min-w-[8rem] justify-center text-sm"
                 onClick={() => decide("rejected")}
                 disabled={busy}
-                title="Reject · R"
+                title="Reject (R)"
               >
-                <XIcon size={18} /> Reject <kbd className="ml-1 hidden font-mono text-[10px] opacity-70 sm:inline">R</kbd>
+                <span className="btn-icon-nest"><XIcon size={15} /></span>
+                Reject
               </button>
             </div>
 
             {history.length > 0 && (
               <div className="mt-3 flex justify-center">
-                <button type="button" className="btn-ghost text-xs" onClick={undo} disabled={busy} title="Undo · U">
-                  <UndoIcon size={14} /> Undo last <kbd className="ml-1 font-mono text-[10px] opacity-70">U</kbd>
+                <button
+                  type="button"
+                  className={cn(
+                    "btn-ghost text-xs transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                    flash === "undo" && "scale-105 opacity-0"
+                  )}
+                  onClick={undo}
+                  disabled={busy}
+                  title="Undo (U)"
+                >
+                  <UndoIcon size={14} /> Undo
                 </button>
-              </div>
-            )}
-
-            {/* flash overlay */}
-            {flash && flash !== "undo" && (
-              <div
-                className={cn(
-                  "pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg text-2xl font-bold text-white animate-fade-in",
-                  flash === "approved" && "bg-[var(--color-approved)]/85",
-                  flash === "rejected" && "bg-[var(--color-rejected)]/85",
-                  flash === "changes_requested" && "bg-[var(--color-changes)]/85"
-                )}
-                style={{ mixBlendMode: "normal" }}
-              >
-                {flash === "approved" && "✓ Approved"}
-                {flash === "rejected" && "✕ Rejected"}
-                {flash === "changes_requested" && "⚠ Changes requested"}
               </div>
             )}
           </div>
@@ -251,28 +263,21 @@ export function CardDeck({
   );
 }
 
-function WeekClear({
-  weekId,
-  weekLabel,
-  tabLabel,
-}: {
-  weekId: string;
-  weekLabel: string;
-  tabLabel: string;
-}) {
+function WeekClear({ weekLabel }: { weekLabel: string }) {
   return (
-    <div className="surface flex flex-col items-center gap-3 px-6 py-16 text-center">
-      <span
-        className="grid h-14 w-14 place-items-center rounded-full bg-[var(--color-approved-bg)] text-[var(--color-approved)]"
-        aria-hidden
-      >
-        <CheckCircleIcon size={28} />
-      </span>
-      <h3 className="text-lg font-semibold">{tabLabel} is clear</h3>
-      <p className="mx-auto max-w-md text-sm text-[var(--color-muted-foreground)]">
-        Nothing left to review for {weekLabel} ({weekId}). Switch tabs to keep going,
-        or stage new posts from the toolbar.
-      </p>
+    <div className="surface overflow-hidden">
+      <div className="surface-inner flex flex-col items-center gap-3 px-6 py-16 text-center">
+        <span
+          className="grid h-14 w-14 place-items-center rounded-full bg-[var(--color-approved-bg)] text-[var(--color-approved)]"
+          aria-hidden
+        >
+          <CheckCircleIcon size={28} />
+        </span>
+        <h3 className="text-lg font-semibold">Week clear</h3>
+        <p className="mx-auto max-w-sm text-sm text-[var(--color-muted-foreground)]">
+          Nothing left to review for {weekLabel}.
+        </p>
+      </div>
     </div>
   );
 }

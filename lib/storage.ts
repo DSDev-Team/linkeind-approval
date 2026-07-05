@@ -1,5 +1,5 @@
 import type { Post, PostStatus, WeekGroup, NewPostInput } from "./types";
-import { approvalWindows, weekRangeLabel, dayLabel, addDays, toISODate, weekKeyForDate } from "./weeks";
+import { approvalWindows, weekRangeLabel, dayLabel, addDays, toISODate, weekKeyForDate, type WeekHorizon } from "./weeks";
 
 export interface Storage {
   getAllPosts(): Promise<Post[]>;
@@ -26,8 +26,12 @@ const STATUS_ORDER: PostStatus[] = [
   "rejected",
 ];
 
-export function groupByWeek(posts: Post[], from: Date = new Date()): WeekGroup[] {
-  const windows = approvalWindows(from);
+export function groupByWeek(
+  posts: Post[],
+  horizon: WeekHorizon = 1,
+  from: Date = new Date()
+): WeekGroup[] {
+  const windows = approvalWindows(horizon, from);
   const byId = new Map<string, Post[]>();
   for (const p of posts) {
     if (!byId.has(p.weekId)) byId.set(p.weekId, []);

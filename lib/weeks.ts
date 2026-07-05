@@ -1,8 +1,8 @@
-// ISO-week + label helpers, tuned for an approval cadence that looks
-// at "next week" and "the week after that".
+// Week helpers. The approval dashboard looks at a configurable horizon
+// (1, 2, or 3 weeks forward, defaulting to the current week) and labels
+// each window with a clean date range, not childish "next week" phrasing.
 
 export function getISOWeekId(date: Date): string {
-  // ISO week: Thursday-defines-year, week starts Monday.
   const d = new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
   );
@@ -34,39 +34,37 @@ export function toISODate(date: Date): string {
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_LABELS_FULL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
+// "Jul 7–13" or "Jun 28–Jul 4" — clean range, no childish "next week".
 export function weekRangeLabel(start: Date): string {
   const end = addDays(start, 6);
   const sameMonth = start.getMonth() === end.getMonth();
-  const startStr = `${MONTH_LABELS[start.getMonth()]} ${start.getDate()}`;
-  const endStr = `${MONTH_LABELS[end.getMonth()]} ${end.getDate()}`;
   return sameMonth
     ? `${MONTH_LABELS[start.getMonth()]} ${start.getDate()}–${end.getDate()}`
-    : `${startStr}–${endStr}`;
+    : `${MONTH_LABELS[start.getMonth()]} ${start.getDate()}–${MONTH_LABELS[end.getMonth()]} ${end.getDate()}`;
+}
+
+// "Jul 7–13, 2026" — full label for the active tab header.
+export function weekRangeLabelFull(start: Date): string {
+  return `${weekRangeLabel(start)}, ${start.getFullYear()}`;
 }
 
 export function dayLabel(isoDate: string): string {
   const d = new Date(`${isoDate}T00:00:00Z`);
-  return `${DAY_LABELS[d.getUTCDay()]} ${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  return `${DAY_LABELS[d.getUTCDay()]}, ${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }
 
 export function fullDate(isoDate: string): string {
   const d = new Date(`${isoDate}T00:00:00Z`);
-  return `${DAY_LABELS[d.getUTCDay()]}, ${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  return `${DAY_LABELS[d.getUTCDay()]}, ${MONTH_LABELS_FULL[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 export interface WeekKey {
@@ -79,16 +77,18 @@ export function weekKeyForDate(date: Date): WeekKey {
   return { weekId: getISOWeekId(date), start };
 }
 
-export function nextWeekKey(from: Date): WeekKey {
-  return weekKeyForDate(addDays(startOfWeek(from), 7));
-}
+export type WeekHorizon = 1 | 2 | 3;
 
-export function weekAfterNextKey(from: Date): WeekKey {
-  return weekKeyForDate(addDays(startOfWeek(from), 14));
-}
-
-// The three weeks the dashboard cares about — relative to "today".
-export function approvalWindows(from: Date = new Date()): WeekKey[] {
-  const thisWeek = weekKeyForDate(from);
-  return [thisWeek, nextWeekKey(from), weekAfterNextKey(from)];
+// N consecutive ISO weeks starting from the current week.
+export function approvalWindows(
+  horizon: WeekHorizon = 1,
+  from: Date = new Date()
+): WeekKey[] {
+  const thisStart = startOfWeek(from);
+  const windows: WeekKey[] = [];
+  for (let i = 0; i < horizon; i++) {
+    const start = addDays(thisStart, 7 * i);
+    windows.push(weekKeyForDate(start));
+  }
+  return windows;
 }

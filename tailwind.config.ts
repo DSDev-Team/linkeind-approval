@@ -54,7 +54,7 @@ const config: Config = {
         focus: "0 0 0 3px var(--color-ring)",
       },
       transitionTimingFunction: {
-        smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
+        "premium-out": "cubic-bezier(0.32, 0.72, 0, 1)",
       },
       keyframes: {
         "fade-in": {
@@ -65,15 +65,20 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "zoom-in": {
+          from: { opacity: "0", transform: "scale(0.94)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
         "status-pulse": {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.55" },
         },
       },
       animation: {
-        "fade-in": "fade-in 0.2s cubic-bezier(0.4,0,0.2,1)",
-        "slide-up": "slide-up 0.25s cubic-bezier(0.4,0,0.2,1)",
-        "status-pulse": "status-pulse 2s ease-in-out infinite",
+        "fade-in": "fade-in 0.35s cubic-bezier(0.32,0.72,0,1)",
+        "slide-up": "slide-up 0.4s cubic-bezier(0.32,0.72,0,1)",
+        "zoom-in": "zoom-in 0.45s cubic-bezier(0.32,0.72,0,1)",
+        "status-pulse": "status-pulse 2s cubic-bezier(0.32,0.72,0,1) infinite",
       },
     },
   },

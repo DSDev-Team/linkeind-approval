@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
-function base({ size = 20, strokeWidth = 1.75, ...rest }: IconProps) {
+function base({ size = 20, strokeWidth = 1.5, ...rest }: IconProps) {
   return {
     width: size,
     height: size,

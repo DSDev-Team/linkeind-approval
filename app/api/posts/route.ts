@@ -2,16 +2,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getStorage } from "@/lib/store-context";
 import { groupByWeek } from "@/lib/storage";
 import { initStorage } from "@/lib/store-context";
+import type { WeekHorizon } from "@/lib/weeks";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   await initStorage();
   const store = getStorage();
   const posts = await store.getAllPosts();
-  const weeks = groupByWeek(posts);
+  const { searchParams } = new URL(req.url);
+  const h = Number(searchParams.get("horizon") ?? "1");
+  const horizon = (h === 2 || h === 3 ? h : 1) as WeekHorizon;
+  const weeks = groupByWeek(posts, horizon);
   return NextResponse.json({
     weeks,
+    horizon,
     backend: store.backendName(),
     kvConfigured: Boolean(
       process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
