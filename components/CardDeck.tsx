@@ -110,7 +110,7 @@ export function CardDeck({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [decide, undo, weeks.length]);
+  }, [decide, approveWeek, undo, weeks.length]);
 
   // When the week's pending list shrinks (after a decision), keep cursor valid.
   useEffect(() => {
