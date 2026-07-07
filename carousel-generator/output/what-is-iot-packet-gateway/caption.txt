@@ -1,0 +1,7 @@
+Every IoT device needs somewhere to send its data. A packet gateway is the bridge that makes it happen.
+
+It routes packets, translates between protocols, and keeps your data secure in transit. Without one, your connectivity layer doesn't exist.
+
+Cloud-IQ builds the infrastructure that connects devices to the networks and platforms they rely on.
+
+#IoT #PacketGateway #IoTConnectivity #CloudInfrastructure #CloudIQ
