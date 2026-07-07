@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Cloud-IQ Carousel Template</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#0b1b30}
+  body{font-family:'Poppins',sans-serif}
+
+  .slide{position:relative;width:1080px;height:1350px;overflow:hidden;padding:88px;display:flex;flex-direction:column}
+  .slide>.top,.slide>.body,.slide>.meta{position:relative;z-index:2}
+  .curves{position:absolute;inset:0;z-index:0;pointer-events:none}
+
+  /* ===== THEMES (only bg + colour differ; layouts are shared) ===== */
+  .t-sunset{background:linear-gradient(150deg,#139FCA 0%,#0C6CB7 42%,#0A2A52 100%);
+    --text:#fff;--muted:rgba(255,255,255,.82);--faint:rgba(255,255,255,.55);--heading:#fff;
+    --accent:#1CD8E5;--danger:#EE6A5F;--hair:rgba(255,255,255,.18);
+    --logoFilter:brightness(0) invert(1);--iconc:#fff;--socialBg:#fff;--socialFg:#0C6CB7;
+    --curveStroke:rgba(255,255,255,.9);--curveOp:.15;--ctaBg:#fff;--ctaFg:#0C6CB7}
+  .t-scale{background:#fff;
+    --text:#0A2A52;--muted:#4A5A70;--faint:rgba(10,42,82,.5);--heading:#0C6CB7;
+    --accent:#0C6CB7;--danger:#E0554B;--hair:rgba(10,42,82,.12);
+    --logoFilter:none;--iconc:#0C6CB7;--socialBg:#0C6CB7;--socialFg:#fff;
+    --curveStroke:rgba(12,108,183,.13);--curveOp:1;--ctaBg:#0C6CB7;--ctaFg:#fff}
+  .t-mesh{background:#f4f7fa url('assets/background.png') center/cover no-repeat;
+    --text:#0A2A52;--muted:#4A5A70;--faint:rgba(10,42,82,.5);--heading:#0A2A52;
+    --accent:#0C6CB7;--danger:#E0554B;--hair:rgba(10,42,82,.12);
+    --logoFilter:none;--iconc:#0C6CB7;--socialBg:#0C6CB7;--socialFg:#fff;
+    --curveStroke:transparent;--curveOp:0;--ctaBg:#0C6CB7;--ctaFg:#fff}
+  .t-daylight{background:linear-gradient(150deg,#EAF6FC 0%,#C6E6F6 46%,#9AD2ED 100%);
+    --text:#0A2A52;--muted:#3B4A63;--faint:rgba(10,42,82,.5);--heading:#0A2A52;
+    --accent:#0C6CB7;--danger:#E0554B;--hair:rgba(10,42,82,.14);
+    --logoFilter:none;--iconc:#0C6CB7;--socialBg:#0C6CB7;--socialFg:#fff;
+    --curveStroke:rgba(12,108,183,.14);--curveOp:1;--ctaBg:#0C6CB7;--ctaFg:#fff}
+
+  .slide{color:var(--text)}
+  .top{display:flex;align-items:flex-start;justify-content:space-between}
+  .logo{height:112px;width:auto;filter:var(--logoFilter)}
+  .counter{font-size:24px;font-weight:600;color:var(--faint);letter-spacing:2px;font-variant-numeric:tabular-nums;margin-top:16px}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px;min-height:0}
+
+  h1.head{color:var(--heading);font-weight:800;font-size:80px;line-height:1.05;letter-spacing:-1.6px}
+  h1.head.mid{font-size:60px}
+  .lede{font-size:34px;line-height:1.5;color:var(--muted);max-width:840px}
+  .swipe{font-size:26px;color:var(--faint);font-weight:600;letter-spacing:1px}
+
+  .stats{display:flex;flex-direction:column;gap:44px}
+  .stat .n{font-size:82px;font-weight:800;line-height:1;letter-spacing:-2px;color:var(--heading)}
+  .stat .n.accent{color:var(--accent)}
+  .stat .t{font-size:32px;color:var(--muted);margin-top:12px;max-width:780px}
+
+  .bignum{font-size:210px;font-weight:800;color:var(--heading);line-height:.9;letter-spacing:-6px}
+  .source{font-size:25px;color:var(--muted)}
+
+  .list{display:flex;flex-direction:column;gap:30px}
+  .list .row{display:flex;align-items:center;gap:28px;font-size:38px;font-weight:500;line-height:1.25;color:var(--text)}
+  .dot{width:22px;height:22px;border-radius:50%;flex:0 0 auto;background:var(--accent)}
+  .dot.danger{background:var(--danger)}
+  /* scale keeps the connecting spine — top/height are set per-render by JS to match actual dot centers (see script below), so it neither overshoots nor sits off-centre when rows wrap to different heights */
+  .t-scale .list{position:relative;padding-left:4px}
+  .t-scale .list::before{content:"";position:absolute;left:19px;top:var(--spineTop,20px);height:var(--spineHeight,calc(100% - 40px));width:4px;border-radius:2px;background:var(--accent)}
+  .t-scale .list .row{font-weight:600}
+  .t-scale .dot{width:34px;height:34px;border:6px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.04)}
+
+  .card{border:1px solid var(--hair);background:color-mix(in srgb,var(--text) 6%,transparent);border-radius:26px;padding:34px;display:flex;flex-direction:column;gap:24px}
+  .card .cr{display:flex;align-items:center;justify-content:space-between}
+  .card .id{font-size:30px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tag{font-size:27px;font-weight:600;padding:10px 26px;border-radius:40px}
+  .tag.danger{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+  .tag.accent{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+  .cta{align-self:flex-start;display:flex;align-items:center;gap:16px;background:var(--ctaBg);color:var(--ctaFg);font-weight:600;font-size:33px;padding:24px 48px;border-radius:50px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+
+  .meta{display:flex;flex-direction:column;gap:24px}
+  .meta-rows{display:flex;flex-direction:column;gap:14px;font-size:23px;font-weight:500;color:var(--text)}
+  .meta-rows div{display:flex;align-items:center;gap:18px}
+  .meta-rows i{width:26px;text-align:center;color:var(--iconc)}
+</style>
+</head>
+<body>
+
+<!-- =======================================================================
+     AGENT: EDIT ONLY THIS BLOCK. Do not touch the CSS above or the script below.
+     - THEME: pick ONE at random from "sunset" | "scale" | "mesh" | "daylight"
+     - SLIDES: EXACTLY 3 or 4 slides (HARD MAX = 4). First slide MUST be type "cover", last MUST be "cta".
+       Contact details are added automatically to the first and last slide only.
+     - Slide types: cover, stats, bignum, list, statement, cta (see README).
+     - Keep every string SHORT. Humanize all copy first (see GOAL.md).
+======================================================================== -->
+<script id="carousel-data">
+window.CONTACT = {
+  site: "www.thecloud-iq.io",
+  phone: "+254 20 8780010",
+  email: "info@thecloud-iq.io",
+  address: "Jahazi Building, James Gichuru Rd, Lavington, Nairobi"
+};
+window.CAROUSEL = {
+  theme: "sunset",
+  slides: [
+    { type: "cover", heading: "Your headline goes here.", sub: "One short supporting line." },
+    { type: "list", tone: "danger", heading: "A short section heading.", items: ["First point","Second point","Third point"] },
+    { type: "statement", heading: "A single sharp statement.", body: "One or two short sentences." },
+    { type: "cta", heading: "The closing question or line.", body: "One line tying back to Cloud-IQ.", cta: "See it in Cloud-IQ" }
+  ]
+};
+</script>
+
+<script>
+(function(){
+  var C = window.CAROUSEL, CT = window.CONTACT;
+  var THEMES = { sunset:"t-sunset", scale:"t-scale", mesh:"t-mesh", daylight:"t-daylight" };
+  var themeClass = THEMES[C.theme] || "t-sunset";
+  var total = C.slides.length;
+  var pad = function(x){ return (x<10?"0":"")+x; };
+  var esc = function(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+
+  var CURVES = '<svg class="curves" viewBox="0 0 1080 1350" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="opacity:var(--curveOp)">'
+    + '<path d="M-140 340 C 140 340, 280 680, 280 1010 C 280 1350, 140 1520, -140 1520" fill="none" stroke="var(--curveStroke)" stroke-width="2.5"/>'
+    + '<path d="M-70 420 C 210 420, 350 760, 350 1090 C 350 1430, 210 1600, -70 1600" fill="none" stroke="var(--curveStroke)" stroke-width="2.5"/>'
+    + '<path d="M960 -170 C 960 170, 680 340, 680 680 C 680 1010, 960 1180, 1220 1180" fill="none" stroke="var(--curveStroke)" stroke-width="2.5"/>'
+    + '<path d="M1040 -80 C 1040 250, 760 420, 760 760 C 760 1090, 1040 1270, 1300 1270" fill="none" stroke="var(--curveStroke)" stroke-width="2.5"/>'
+    + '</svg>';
+
+  function metaHTML(){
+    return '<div class="meta"><div class="meta-rows">'
+      + '<div><i class="fa-solid fa-globe"></i> '+esc(CT.site)+'</div>'
+      + '<div><i class="fa-solid fa-phone"></i> '+esc(CT.phone)+'</div>'
+      + '<div><i class="fa-solid fa-envelope"></i> '+esc(CT.email)+'</div>'
+      + '<div><i class="fa-solid fa-location-dot"></i> '+esc(CT.address)+'</div>'
+      + '</div></div>';
+  }
+
+  function bodyHTML(s){
+    var t = s.type, h = "";
+    if(t==="cover"){
+      h += '<h1 class="head">'+esc(s.heading)+'</h1>';
+      if(s.sub) h += '<p class="lede">'+esc(s.sub)+'</p>';
+      h += '<div class="swipe">Swipe &rarr;</div>';
+    } else if(t==="stats"){
+      h += '<div class="stats">';
+      (s.items||[]).forEach(function(it,i){
+        var cls = (i===(s.items.length-1))?" accent":"";
+        h += '<div class="stat"><div class="n'+cls+'">'+esc(it.n)+'</div><div class="t">'+esc(it.t)+'</div></div>';
+      });
+      h += '</div>';
+    } else if(t==="bignum"){
+      h += '<div class="bignum">'+esc(s.num)+'</div>';
+      if(s.body) h += '<p class="lede">'+esc(s.body)+'</p>';
+      if(s.source) h += '<div class="source">'+esc(s.source)+'</div>';
+    } else if(t==="list"){
+      if(s.heading) h += '<h1 class="head mid">'+esc(s.heading)+'</h1>';
+      var dotcls = (s.tone==="danger")?"dot danger":"dot";
+      h += '<div class="list">';
+      (s.items||[]).forEach(function(it){ h += '<div class="row"><span class="'+dotcls+'"></span>'+esc(it)+'</div>'; });
+      h += '</div>';
+    } else if(t==="statement"){
+      h += '<h1 class="head mid">'+esc(s.heading)+'</h1>';
+      if(s.body) h += '<p class="lede">'+esc(s.body)+'</p>';
+    } else if(t==="cta"){
+      if(s.heading) h += '<h1 class="head mid">'+esc(s.heading)+'</h1>';
+      if(s.card){ h += '<div class="card">';
+        s.card.forEach(function(r){ var tc=(r.tone==="danger")?"danger":"accent";
+          h += '<div class="cr"><span class="id">'+esc(r.id)+'</span><span class="tag '+tc+'">'+esc(r.tag)+'</span></div>'; });
+        h += '</div>'; }
+      if(s.body) h += '<p class="lede" style="font-size:30px">'+esc(s.body)+'</p>';
+      if(s.cta) h += '<div class="cta">'+esc(s.cta)+' <i class="fa-solid fa-arrow-right"></i></div>';
+    }
+    return h;
+  }
+
+  var n = parseInt(new URLSearchParams(location.search).get('slide')||'1',10);
+  if(isNaN(n)||n<1) n=1; if(n>total) n=total;
+  var idx = n-1, s = C.slides[idx];
+  var isEnds = (idx===0 || idx===total-1);
+
+  var sec = document.createElement('section');
+  sec.className = 'slide '+themeClass;
+  var html = '';
+  if(C.theme!=='mesh') html += CURVES;
+  html += '<div class="top"><img class="logo" src="assets/cloud-iq-logo.svg" alt="Cloud-IQ"/><div class="counter">'+pad(n)+' / '+pad(total)+'</div></div>';
+  html += '<div class="body">'+bodyHTML(s)+'</div>';
+  if(isEnds) html += metaHTML();
+  sec.innerHTML = html;
+  document.body.appendChild(sec);
+
+  // scale theme's list spine: anchor it to the true centre of the first/last
+  // dot (measured after layout) instead of guessed pixel offsets, so it never
+  // over/undershoots when a row's text wraps to a different number of lines.
+  if(themeClass==='t-scale'){
+    var listEl = sec.querySelector('.list');
+    var dots = listEl ? listEl.querySelectorAll('.dot') : [];
+    if(listEl && dots.length){
+      var listRect = listEl.getBoundingClientRect();
+      var firstRect = dots[0].getBoundingClientRect();
+      var lastRect = dots[dots.length-1].getBoundingClientRect();
+      var top = (firstRect.top + firstRect.height/2) - listRect.top;
+      var bottom = (lastRect.top + lastRect.height/2) - listRect.top;
+      listEl.style.setProperty('--spineTop', top+'px');
+      listEl.style.setProperty('--spineHeight', Math.max(0,bottom-top)+'px');
+    }
+  }
+
+  document.title = 'slide-'+n;
+})();
+</script>
+</body></html>
